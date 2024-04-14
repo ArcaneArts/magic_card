@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
-class Card {
+class CardOracle {
   final String object;
   final String id;
   final String oracleId;
@@ -64,7 +64,7 @@ class Card {
   final Map<String, String> relatedUris;
   final Map<String, String> purchaseUris;
 
-  Card({
+  CardOracle({
     required this.object,
     required this.id,
     required this.oracleId,
@@ -128,8 +128,8 @@ class Card {
     required this.purchaseUris,
   });
 
-  factory Card.fromJson(Map<String, dynamic> json) {
-    return Card(
+  factory CardOracle.fromJson(Map<String, dynamic> json) {
+    return CardOracle(
       object: json['object'],
       id: json['id'],
       oracleId: json['oracle_id'],
@@ -195,9 +195,9 @@ class Card {
   }
 }
 
-Future<List<Card>> loadCards(String filePath) async {
+Future<List<CardOracle>> loadCards(String filePath) async {
   var file = File(filePath);
   var content = await file.readAsString();
   var jsonList = json.decode(content) as List;
-  return jsonList.map((json) => Card.fromJson(json)).toList();
+  return jsonList.map((json) => CardOracle.fromJson(json)).toList();
 }
