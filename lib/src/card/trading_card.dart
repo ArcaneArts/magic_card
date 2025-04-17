@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 
 class TradingCard extends StatelessWidget {
   const TradingCard({
@@ -9,8 +9,9 @@ class TradingCard extends StatelessWidget {
     required this.card,
     this.width,
     this.height,
-    this.padding = const EdgeInsets.all(75.0),
+    this.padding = EdgeInsets.zero, // Changed default padding
     this.borderRadius = 10.0,
+    this.fit = BoxFit.contain, // Added fit parameter
   });
 
   /// A `String` representing a url leading to an image.
@@ -26,28 +27,32 @@ class TradingCard extends StatelessWidget {
   /// The border radius of the rounded corners.
   final double borderRadius;
 
+  final BoxFit fit;
+
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: padding,
-      child: SizedBox(
-        width: width ?? MediaQuery.of(context).size.width,
-        height: height ?? MediaQuery.of(context).size.height,
-        child: Center(
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(borderRadius),
-            child: CachedNetworkImage(
-              imageUrl: card,
-              placeholder: (context, url) =>
-                  const CustomCircularLoader(size: 48),
-              errorWidget: (context, url, error) =>
-                  const CustomErrorIndicator(size: 48),
-              imageBuilder: (context, imageProvider) => AnimatedOpacity(
-                opacity: 1,
-                duration: const Duration(milliseconds: 500),
-                curve: Curves.ease,
-                child: Image(image: imageProvider),
-              ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(borderRadius),
+        child: CachedNetworkImage(
+          imageUrl: card,
+          width: width,
+          height: height,
+          fit: fit,
+          // Use the fit parameter
+          placeholder: (context, url) => const CustomCircularLoader(size: 48),
+          errorWidget: (context, url, error) =>
+              const CustomErrorIndicator(size: 48),
+          imageBuilder: (context, imageProvider) => AnimatedOpacity(
+            opacity: 1,
+            duration: const Duration(milliseconds: 500),
+            curve: Curves.ease,
+            child: Image(
+              image: imageProvider,
+              width: width,
+              height: height,
+              fit: fit,
             ),
           ),
         ),

@@ -1,9 +1,7 @@
-import 'dart:typed_data';
-
 import 'package:fast_log/fast_log.dart';
-import 'package:flutter/material.dart';
-import 'package:foil/foil.dart';
+import 'package:magic_card/magic_card.dart';
 import 'package:memcached/memcached.dart';
+import 'package:nonsense_foil/nonsense_foil.dart';
 import 'package:scryfall_api/scryfall_api.dart';
 
 ScryfallApiClient? _sf;
@@ -122,4 +120,29 @@ class CardView extends StatelessWidget {
       },
     );
   }
+}
+
+/// A simplified function to get a Magic card widget with optional foil effect
+Widget getMagicCard({
+  required String scryfallId,
+  bool isFoil = false,
+  double? width,
+  double? height,
+  BoxFit fit = BoxFit.contain,
+  double primaryFoilOpacity = 0.4,
+  double secondaryFoilOpacity = 0.25,
+  Gradient primaryFoilGradient = Foils.linearRainbow,
+  Gradient secondaryFoilGradient = Foils.oilslick,
+}) {
+  return FoilMagicCard(
+    scryfallId: scryfallId,
+    isFoil: isFoil,
+    width: width,
+    height: height,
+    fit: fit,
+    primaryFoilOpacity: primaryFoilOpacity,
+    secondaryFoilOpacity: secondaryFoilOpacity,
+    primaryFoilGradient: primaryFoilGradient,
+    secondaryFoilGradient: secondaryFoilGradient,
+  );
 }
