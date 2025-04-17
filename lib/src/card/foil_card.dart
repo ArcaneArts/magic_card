@@ -1,7 +1,8 @@
-import 'package:magic_card/src/card/trading_card.dart';
+import 'package:flutter/widgets.dart';
 import 'package:mtg/util/scryfall_util.dart';
-import 'package:nonsense_foil/nonsense_foil.dart';
 import 'package:scryfall_api/scryfall_api.dart';
+
+import '../../magic_card.dart';
 
 /// Returns a Widget displaying a Magic: The Gathering card with optional foil effect.
 ///
@@ -51,10 +52,10 @@ class FoilMagicCard extends StatelessWidget {
     this.width,
     this.height,
     this.fit = BoxFit.contain,
-    this.primaryFoilOpacity = 0.4,
-    this.secondaryFoilOpacity = 0.25,
-    this.primaryFoilGradient = Foils.linearRainbow,
-    this.secondaryFoilGradient = Foils.oilslick,
+    this.primaryFoilOpacity = 0.2,
+    this.secondaryFoilOpacity = 0.2,
+    this.primaryFoilGradient = Foils.glass,
+    this.secondaryFoilGradient = Foils.glass,
   });
 
   @override

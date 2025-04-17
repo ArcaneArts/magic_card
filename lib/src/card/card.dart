@@ -1,7 +1,9 @@
+import 'dart:typed_data';
+
 import 'package:fast_log/fast_log.dart';
+import 'package:flutter/widgets.dart';
 import 'package:magic_card/magic_card.dart';
 import 'package:memcached/memcached.dart';
-import 'package:nonsense_foil/nonsense_foil.dart';
 import 'package:scryfall_api/scryfall_api.dart';
 
 ScryfallApiClient? _sf;
