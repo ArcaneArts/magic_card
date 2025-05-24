@@ -1,10 +1,10 @@
-import 'dart:typed_data';
-
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:fast_log/fast_log.dart';
 import 'package:flutter/widgets.dart';
 import 'package:magic_card/magic_card.dart';
 import 'package:memcached/memcached.dart';
 import 'package:scryfall_api/scryfall_api.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 
 ScryfallApiClient? _sf;
 
@@ -16,19 +16,64 @@ ScryfallApiClient sfClient() {
   return _sf!;
 }
 
-Future<Uint8List> getImage({
+Future<String?> getImageUrl({
   required String id,
   ImageVersion size = ImageVersion.normal,
-  bool back = true,
-}) {
-  String cacheKey = "card$id$back${size.index}";
-  verbose("Fetching image with cache key: $cacheKey");
+  bool back = false,
+}) async {
+  String cacheKey = "cardUrl$id$back${size.index}";
+  verbose("Fetching image URL with cache key: $cacheKey");
+
   return getCached(
     id: cacheKey,
-    getter: () =>
-        sfClient().getCardByIdAsImage(id, imageVersion: size, backFace: back),
-    duration: const Duration(minutes: 5),
+    getter: () async {
+      try {
+        final card = await sfClient().getCardById(id);
+
+        // Handle double-faced cards
+        if (back && card.cardFaces != null && card.cardFaces!.length > 1) {
+          final backFace = card.cardFaces![1];
+          if (backFace.imageUris != null) {
+            return _getImageUrlForSize(backFace.imageUris!, size);
+          }
+        }
+
+        // Handle single-faced cards or front face
+        if (card.imageUris != null) {
+          return _getImageUrlForSize(card.imageUris!, size);
+        } else if (card.cardFaces != null && card.cardFaces!.isNotEmpty) {
+          final frontFace = card.cardFaces![0];
+          if (frontFace.imageUris != null) {
+            return _getImageUrlForSize(frontFace.imageUris!, size);
+          }
+        }
+
+        return null;
+      } catch (e) {
+        error("Failed to fetch card image URL: $e");
+        return null;
+      }
+    },
+    duration:
+        const Duration(hours: 24), // Cache URLs longer since they don't change
   );
+}
+
+String _getImageUrlForSize(ImageUris uris, ImageVersion size) {
+  switch (size) {
+    case ImageVersion.small:
+      return uris.small.toString();
+    case ImageVersion.normal:
+      return uris.normal.toString();
+    case ImageVersion.large:
+      return uris.large.toString();
+    case ImageVersion.png:
+      return uris.png.toString();
+    case ImageVersion.artCrop:
+      return uris.artCrop.toString();
+    case ImageVersion.borderCrop:
+      return uris.borderCrop.toString();
+  }
 }
 
 class CardView extends StatelessWidget {
@@ -54,29 +99,51 @@ class CardView extends StatelessWidget {
   }) : assert((interactive && !flat) || !interactive,
             "Interactive cards must be non-flat");
 
-  Widget buildImage(BuildContext context, Uint8List bytes) {
-    verbose("Building image widget");
+  Widget buildImage(BuildContext context, String imageUrl) {
+    verbose("Building image widget with URL: $imageUrl");
     return SizedBox(
       width: MediaQuery.of(context).size.width * 0.8,
       child: ClipRRect(
         borderRadius: BorderRadius.circular(borderRadius),
-        child: Image.memory(
-          bytes,
-          frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
-            child = ClipRRect(
+        child: CachedNetworkImage(
+          imageUrl: imageUrl,
+          fit: BoxFit.contain,
+          placeholder: (context, url) => Skeletonizer(
+            enabled: true,
+            child: Container(
+              width: MediaQuery.of(context).size.width * 0.8,
+              decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(borderRadius),
-                child: child);
-            if (wasSynchronouslyLoaded) {
-              success("Image loaded synchronously");
-              return child;
-            }
-            return AnimatedOpacity(
-              child: child,
-              opacity: frame == null ? 0 : 1,
-              duration: const Duration(milliseconds: 750),
-              curve: Curves.easeInOutCirc,
-            );
-          },
+              ),
+            ),
+          ),
+          errorWidget: (context, url, error) => Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(borderRadius),
+            ),
+            child: Center(
+              child: Text(
+                'Failed to load image',
+                style: TextStyle(
+                  fontSize: 14,
+                ),
+              ),
+            ),
+          ),
+          imageBuilder: (context, imageProvider) => AnimatedOpacity(
+            opacity: 1,
+            duration: const Duration(milliseconds: 500),
+            curve: Curves.easeInOutCirc,
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(borderRadius),
+                image: DecorationImage(
+                  image: imageProvider,
+                  fit: BoxFit.contain,
+                ),
+              ),
+            ),
+          ),
         ),
       ),
     );
@@ -106,22 +173,67 @@ class CardView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     info("Building main card view widget");
-    return FutureBuilder<Uint8List>(
-      future: getImage(id: id, size: size, back: back),
+    return FutureBuilder<String?>(
+      future: getImageUrl(id: id, size: size, back: back),
       builder: (context, snapshot) {
-        if (snapshot.hasData) {
-          success("Data fetched successfully");
-          return interactiveWrap(
-            context,
-            !flat
-                ? wrap(context, buildImage(context, snapshot.data!))
-                : buildImage(context, snapshot.data!),
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Skeletonizer(
+            enabled: true,
+            child: Container(
+              width: MediaQuery.of(context).size.width * 0.8,
+              height: MediaQuery.of(context).size.width * 0.8 * 1.4,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(borderRadius),
+              ),
+            ),
           );
-        } else if (snapshot.hasError) {
-          info("Error loading image: ${snapshot.error}");
-          return Text('Error: ${snapshot.error}');
         }
-        return const SizedBox.shrink();
+
+        if (snapshot.hasError) {
+          error("Error loading image URL: ${snapshot.error}");
+          return Container(
+            width: MediaQuery.of(context).size.width * 0.8,
+            height: MediaQuery.of(context).size.width * 0.8 * 1.4,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(borderRadius),
+            ),
+            child: Center(
+              child: Text(
+                'Error: ${snapshot.error}',
+                style: const TextStyle(
+                  fontSize: 14,
+                ),
+              ),
+            ),
+          );
+        }
+
+        final imageUrl = snapshot.data;
+        if (imageUrl == null || imageUrl.isEmpty) {
+          return Container(
+            width: MediaQuery.of(context).size.width * 0.8,
+            height: MediaQuery.of(context).size.width * 0.8 * 1.4,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(borderRadius),
+            ),
+            child: const Center(
+              child: Text(
+                'No image available',
+                style: TextStyle(
+                  fontSize: 14,
+                ),
+              ),
+            ),
+          );
+        }
+
+        success("Image URL fetched successfully: $imageUrl");
+        return interactiveWrap(
+          context,
+          !flat
+              ? wrap(context, buildImage(context, imageUrl))
+              : buildImage(context, imageUrl),
+        );
       },
     );
   }
