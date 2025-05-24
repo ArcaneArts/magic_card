@@ -1,5 +1,4 @@
 import 'package:flutter/widgets.dart';
-import 'package:mtg/util/scryfall_util.dart';
 import 'package:scryfall_api/scryfall_api.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
@@ -66,7 +65,7 @@ class FoilMagicCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<MtgCard>(
-      future: ScryUtil.getCardDetails(scryfallId),
+      future: getCachedCardData(scryfallId),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Skeletonizer(
@@ -82,18 +81,31 @@ class FoilMagicCard extends StatelessWidget {
         }
 
         if (snapshot.hasError) {
-          return SizedBox(
-            width: width,
-            height: height,
-            child: Center(child: Text('Error loading card: ${snapshot.error}')),
+          // With retry logic, this should never happen, but keep the skeleton loader
+          // as the retry will continue in the background
+          return Skeletonizer(
+            enabled: true,
+            child: Container(
+              width: width ?? 300,
+              height: height ?? 420,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(borderRadius),
+              ),
+            ),
           );
         }
 
         if (!snapshot.hasData) {
-          return SizedBox(
-            width: width,
-            height: height,
-            child: const Center(child: Text('Card not found')),
+          // This should also never happen with our retry logic
+          return Skeletonizer(
+            enabled: true,
+            child: Container(
+              width: width ?? 300,
+              height: height ?? 420,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(borderRadius),
+              ),
+            ),
           );
         }
 

@@ -16,7 +16,51 @@ ScryfallApiClient sfClient() {
   return _sf!;
 }
 
-Future<String?> getImageUrl({
+/// Retry a future operation with exponential backoff
+Future<T> retryWithBackoff<T>({
+  required Future<T> Function() operation,
+  int maxAttempts = 5,
+  Duration initialDelay = const Duration(seconds: 1),
+}) async {
+  int attempt = 0;
+  Duration delay = initialDelay;
+
+  while (attempt < maxAttempts) {
+    try {
+      verbose("Attempting operation, attempt ${attempt + 1}/$maxAttempts");
+      return await operation();
+    } catch (e) {
+      attempt++;
+      if (attempt >= maxAttempts) {
+        error("All retry attempts failed: $e");
+        rethrow;
+      }
+      error("Attempt $attempt failed: $e. Retrying in ${delay.inSeconds}s...");
+      await Future.delayed(delay);
+      delay *= 2; // Exponential backoff
+    }
+  }
+
+  throw Exception("Failed after $maxAttempts attempts");
+}
+
+/// Cache card data with retry logic
+Future<MtgCard> getCachedCardData(String cardId) async {
+  String cacheKey = "cardData_$cardId";
+  verbose("Fetching card data with cache key: $cacheKey");
+
+  return getCached(
+    id: cacheKey,
+    getter: () => retryWithBackoff(
+      operation: () => sfClient().getCardById(cardId),
+      maxAttempts: 10, // Keep retrying until we get the data
+      initialDelay: const Duration(seconds: 1),
+    ),
+    duration: const Duration(days: 7), // Cache card data for a week
+  );
+}
+
+Future<String> getImageUrl({
   required String id,
   ImageVersion size = ImageVersion.normal,
   bool back = false,
@@ -27,35 +71,30 @@ Future<String?> getImageUrl({
   return getCached(
     id: cacheKey,
     getter: () async {
-      try {
-        final card = await sfClient().getCardById(id);
+      // Use cached card data with retry logic
+      final card = await getCachedCardData(id);
 
-        // Handle double-faced cards
-        if (back && card.cardFaces != null && card.cardFaces!.length > 1) {
-          final backFace = card.cardFaces![1];
-          if (backFace.imageUris != null) {
-            return _getImageUrlForSize(backFace.imageUris!, size);
-          }
+      // Handle double-faced cards
+      if (back && card.cardFaces != null && card.cardFaces!.length > 1) {
+        final backFace = card.cardFaces![1];
+        if (backFace.imageUris != null) {
+          return _getImageUrlForSize(backFace.imageUris!, size);
         }
-
-        // Handle single-faced cards or front face
-        if (card.imageUris != null) {
-          return _getImageUrlForSize(card.imageUris!, size);
-        } else if (card.cardFaces != null && card.cardFaces!.isNotEmpty) {
-          final frontFace = card.cardFaces![0];
-          if (frontFace.imageUris != null) {
-            return _getImageUrlForSize(frontFace.imageUris!, size);
-          }
-        }
-
-        return null;
-      } catch (e) {
-        error("Failed to fetch card image URL: $e");
-        return null;
       }
+
+      // Handle single-faced cards or front face
+      if (card.imageUris != null) {
+        return _getImageUrlForSize(card.imageUris!, size);
+      } else if (card.cardFaces != null && card.cardFaces!.isNotEmpty) {
+        final frontFace = card.cardFaces![0];
+        if (frontFace.imageUris != null) {
+          return _getImageUrlForSize(frontFace.imageUris!, size);
+        }
+      }
+
+      throw Exception("No image URL found for card $id");
     },
-    duration:
-        const Duration(hours: 24), // Cache URLs longer since they don't change
+    duration: const Duration(days: 30), // Cache URLs for a month
   );
 }
 
@@ -173,7 +212,7 @@ class CardView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     info("Building main card view widget");
-    return FutureBuilder<String?>(
+    return FutureBuilder<String>(
       future: getImageUrl(id: id, size: size, back: back),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -191,18 +230,15 @@ class CardView extends StatelessWidget {
 
         if (snapshot.hasError) {
           error("Error loading image URL: ${snapshot.error}");
-          return Container(
-            width: MediaQuery.of(context).size.width * 0.8,
-            height: MediaQuery.of(context).size.width * 0.8 * 1.4,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(borderRadius),
-            ),
-            child: Center(
-              child: Text(
-                'Error: ${snapshot.error}',
-                style: const TextStyle(
-                  fontSize: 14,
-                ),
+          // This should never happen now with retry logic, but if it does,
+          // the error will be logged and cached data will be retried
+          return Skeletonizer(
+            enabled: true,
+            child: Container(
+              width: MediaQuery.of(context).size.width * 0.8,
+              height: MediaQuery.of(context).size.width * 0.8 * 1.4,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(borderRadius),
               ),
             ),
           );
@@ -210,18 +246,14 @@ class CardView extends StatelessWidget {
 
         final imageUrl = snapshot.data;
         if (imageUrl == null || imageUrl.isEmpty) {
-          return Container(
-            width: MediaQuery.of(context).size.width * 0.8,
-            height: MediaQuery.of(context).size.width * 0.8 * 1.4,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(borderRadius),
-            ),
-            child: const Center(
-              child: Text(
-                'No image available',
-                style: TextStyle(
-                  fontSize: 14,
-                ),
+          // This should also never happen with our new logic
+          return Skeletonizer(
+            enabled: true,
+            child: Container(
+              width: MediaQuery.of(context).size.width * 0.8,
+              height: MediaQuery.of(context).size.width * 0.8 * 1.4,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(borderRadius),
               ),
             ),
           );
