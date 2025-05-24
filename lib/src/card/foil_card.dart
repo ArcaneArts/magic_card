@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:mtg/util/scryfall_util.dart';
 import 'package:scryfall_api/scryfall_api.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 
 import '../../magic_card.dart';
 
@@ -64,10 +65,15 @@ class FoilMagicCard extends StatelessWidget {
       future: ScryUtil.getCardDetails(scryfallId),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return SizedBox(
-            width: width,
-            height: height,
-            child: const Center(child: CustomCircularLoader(size: 48)),
+          return Skeletonizer(
+            enabled: true,
+            child: Container(
+              width: width ?? 300,
+              height: height ?? 420,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16.0),
+              ),
+            ),
           );
         }
 

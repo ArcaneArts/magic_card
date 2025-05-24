@@ -1,7 +1,7 @@
 name: magic_card
 description: MTG-Card renderer, and utility package.
 repository: https://github.com/ArcaneArts/magic_card
-version: 1.0.1+2
+version: 1.0.1+4
 environment:
   sdk: ^3.3.2
 #dependency_overrides:
@@ -17,8 +17,9 @@ dependencies:
   scryfall_api: <=2.2.0
   cached_network_image: <=3.4.1
   fast_log: <=1.0.7
-  mtg: ^1.0.2+1
+  mtg: <=2.0.0
   nonsense_foil: <=2.0.0
+  skeletonizer: <=3.0.0
 
 
 dev_dependencies:

@@ -1,7 +1,6 @@
-import 'dart:math' as math;
-
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/widgets.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 
 class TradingCard extends StatelessWidget {
   const TradingCard({
@@ -41,7 +40,16 @@ class TradingCard extends StatelessWidget {
           height: height,
           fit: fit,
           // Use the fit parameter
-          placeholder: (context, url) => const CustomCircularLoader(size: 48),
+          placeholder: (context, url) => Skeletonizer(
+            enabled: true,
+            child: Container(
+              width: width,
+              height: height,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(borderRadius),
+              ),
+            ),
+          ),
           errorWidget: (context, url, error) =>
               const CustomErrorIndicator(size: 48),
           imageBuilder: (context, imageProvider) => AnimatedOpacity(
@@ -58,105 +66,6 @@ class TradingCard extends StatelessWidget {
         ),
       ),
     );
-  }
-}
-
-/// A custom circular loading indicator that doesn't use Material components
-class CustomCircularLoader extends StatefulWidget {
-  final double size;
-
-  const CustomCircularLoader({
-    super.key,
-    required this.size,
-  });
-
-  @override
-  State<CustomCircularLoader> createState() => _CustomCircularLoaderState();
-}
-
-class _CustomCircularLoaderState extends State<CustomCircularLoader>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1500),
-    );
-    _controller.repeat();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: widget.size,
-      height: widget.size,
-      child: AnimatedBuilder(
-        animation: _controller,
-        builder: (context, child) {
-          return CustomPaint(
-            painter: _LoaderPainter(
-              animationValue: _controller.value,
-              color: const Color(0xFF666666),
-            ),
-          );
-        },
-      ),
-    );
-  }
-}
-
-class _LoaderPainter extends CustomPainter {
-  final double animationValue;
-  final Color color;
-
-  _LoaderPainter({
-    required this.animationValue,
-    required this.color,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final double strokeWidth = size.width / 10;
-    final Offset center = Offset(size.width / 2, size.height / 2);
-    final double radius = (size.width - strokeWidth) / 2;
-
-    final Paint paint = Paint()
-      ..color = color
-      ..strokeWidth = strokeWidth
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
-
-    // Draw background circle with lower opacity
-    canvas.drawCircle(
-        center,
-        radius,
-        Paint()
-          ..color = color.withOpacity(0.2)
-          ..strokeWidth = strokeWidth
-          ..style = PaintingStyle.stroke);
-
-    // Draw animated arc
-    canvas.drawArc(
-      Rect.fromCircle(center: center, radius: radius),
-      -math.pi / 2 + (animationValue * 2 * math.pi),
-      math.pi / 2 + (animationValue * math.pi),
-      false,
-      paint,
-    );
-  }
-
-  @override
-  bool shouldRepaint(_LoaderPainter oldDelegate) {
-    return oldDelegate.animationValue != animationValue;
   }
 }
 
