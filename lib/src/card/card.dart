@@ -39,6 +39,7 @@ class CardView extends StatelessWidget {
   final bool flat;
   final bool interactive;
   final bool interactive3D;
+  final double borderRadius;
 
   const CardView({
     super.key,
@@ -49,6 +50,7 @@ class CardView extends StatelessWidget {
     this.back = false,
     this.foil = false,
     this.flat = true,
+    this.borderRadius = 16.0,
   }) : assert((interactive && !flat) || !interactive,
             "Interactive cards must be non-flat");
 
@@ -57,12 +59,13 @@ class CardView extends StatelessWidget {
     return SizedBox(
       width: MediaQuery.of(context).size.width * 0.8,
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(borderRadius),
         child: Image.memory(
           bytes,
           frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
             child = ClipRRect(
-                borderRadius: BorderRadius.circular(20), child: child);
+                borderRadius: BorderRadius.circular(borderRadius),
+                child: child);
             if (wasSynchronouslyLoaded) {
               success("Image loaded synchronously");
               return child;
@@ -135,6 +138,7 @@ Widget getMagicCard({
   double secondaryFoilOpacity = 0.25,
   Gradient primaryFoilGradient = Foils.linearRainbow,
   Gradient secondaryFoilGradient = Foils.oilslick,
+  double borderRadius = 16.0,
 }) {
   return FoilMagicCard(
     scryfallId: scryfallId,
@@ -146,5 +150,6 @@ Widget getMagicCard({
     secondaryFoilOpacity: secondaryFoilOpacity,
     primaryFoilGradient: primaryFoilGradient,
     secondaryFoilGradient: secondaryFoilGradient,
+    borderRadius: borderRadius,
   );
 }

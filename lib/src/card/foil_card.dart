@@ -45,6 +45,9 @@ class FoilMagicCard extends StatelessWidget {
   /// Secondary foil gradient type
   final Gradient secondaryFoilGradient;
 
+  /// Border radius for the card
+  final double borderRadius;
+
   /// Creates a Magic card widget with optional foil effect
   const FoilMagicCard({
     super.key,
@@ -57,6 +60,7 @@ class FoilMagicCard extends StatelessWidget {
     this.secondaryFoilOpacity = 0.2,
     this.primaryFoilGradient = Foils.glass,
     this.secondaryFoilGradient = Foils.glass,
+    this.borderRadius = 16.0,
   });
 
   @override
@@ -71,7 +75,7 @@ class FoilMagicCard extends StatelessWidget {
               width: width ?? 300,
               height: height ?? 420,
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16.0),
+                borderRadius: BorderRadius.circular(borderRadius),
               ),
             ),
           );
@@ -127,7 +131,7 @@ class FoilMagicCard extends StatelessWidget {
           fit: fit,
           padding: EdgeInsets.zero,
           // No padding by default
-          borderRadius: 16.0,
+          borderRadius: borderRadius,
         );
 
         // Apply foil effect if requested
