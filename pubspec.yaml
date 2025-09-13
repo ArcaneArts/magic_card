@@ -14,7 +14,7 @@ dependencies:
   flutter:
     sdk: flutter
   memcached: ^1.1.0
-  scryfall_api: <=2.2.0
+  scryfall_api: <=3.0.0
   cached_network_image: <=3.4.1
   fast_log: <=1.0.7
   mtg: <=2.0.0
@@ -23,4 +23,4 @@ dependencies:
 
 
 dev_dependencies:
-  lints: ^5.1.1
+  lints: ^6.0.0
