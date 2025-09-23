@@ -1,7 +1,7 @@
 name: magic_card
 description: MTG-Card renderer, and utility package.
 repository: https://github.com/ArcaneArts/magic_card
-version: 1.0.1+5
+version: 1.3.0
 environment:
   sdk: ^3.3.2
 #dependency_overrides:
@@ -13,13 +13,13 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  memcached: ^1.1.0
-  scryfall_api: <=3.0.0
-  cached_network_image: <=3.4.1
-  fast_log: <=1.0.7
-  mtg: <=2.0.0
-  nonsense_foil: <=2.0.0
-  skeletonizer: <=3.0.0
+  memcached: ">=1.1.0 <2.0.0"
+  scryfall_api: ">=2.5.0 <3.0.0"
+  cached_network_image: ">=3.4.1 <4.0.0"
+  fast_log: ">=1.0.7 <2.0.0"
+  mtg: ">=1.0.3 <3.0.0"
+  nonsense_foil: ">=0.9.0+2 <3.0.0"
+  skeletonizer: ">=2.1.0 <3.0.0"
 
 
 dev_dependencies:
